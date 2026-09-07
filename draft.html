@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Fantasy Draft HQ - Custom Draft & Auction Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        borderCol: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col custom-scrollbar">
+
+    <!-- Top Header / Control Bar -->
+    <header class="bg-cardBg border-b border-borderCol px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-md sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    Fantasy Draft HQ <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Custom Poolers & Auction</span>
+                </h1>
+                <p class="text-xs text-slate-400">Traded Pick Grid (16 Rounds) • Original Rank Order Auction Selector</p>
+            </div>
+        </div>
+
+        <!-- Clock & Status Bar -->
+        <div class="flex items-center space-x-6 bg-slate-900/80 px-5 py-2.5 rounded-xl border border-borderCol">
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">On The Clock</div>
+                <div id="on-clock-team" class="text-sm font-bold text-amber-400">Pat Légaré</div>
+            </div>
+            <div class="h-8 w-px bg-borderCol"></div>
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Round / Pick</div>
+                <div id="round-pick-display" class="text-sm font-bold text-slate-200">R1 - Pick 1</div>
+            </div>
+            <div class="h-8 w-px bg-borderCol"></div>
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Timer</div>
+                <div id="timer-display" class="text-sm font-mono font-bold text-emerald-400">02:00</div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <button onclick="toggleTimer()" id="timer-btn" class="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition" title="Start/Pause Timer">
+                    <svg id="timer-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+                <button onclick="resetTimer()" class="p-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition" title="Reset Timer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="flex items-center space-x-3">
+            <button onclick="undoLastPick()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-borderCol text-slate-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                Undo Pick
+            </button>
+            <button onclick="exportDraftData()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-borderCol text-slate-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export Draft
+            </button>
+            <button onclick="resetDraft()" class="px-3.5 py-2 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 text-xs font-semibold rounded-xl transition">
+                Reset Draft
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="bg-cardBg/50 border-b border-borderCol px-6 flex space-x-2">
+        <button onclick="switchTab('board')" id="tab-btn-board" class="px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-400 transition">Draft Board (Traded Matrix)</button>
+        <button onclick="switchTab('auction')" id="tab-btn-auction" class="px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">Auction & Budget Tracker</button>
+        <button onclick="switchTab('players')" id="tab-btn-players" class="px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">Player Pool & Rookies</button>
+        <button onclick="switchTab('rosters')" id="tab-btn-rosters" class="px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">Team Rosters</button>
+    </nav>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 p-6 max-w-[1800px] w-full mx-auto flex flex-col">
+
+        <!-- TAB 1: DRAFT BOARD -->
+        <div id="tab-board" class="space-y-6 flex-1 flex flex-col">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-16z" /></svg>
+                    Custom Traded Draft Board (10 Poolers x 16 Rounds)
+                </h2>
+                <div class="text-xs text-slate-400 flex items-center gap-4">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/40"></span> Drafted</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/40 animate-pulse"></span> On The Clock</span>
+                </div>
+            </div>
+            
+            <div class="bg-cardBg border border-borderCol rounded-2xl shadow-xl overflow-x-auto flex-1 custom-scrollbar">
+                <table id="draft-board-table" class="w-full text-left border-collapse text-xs">
+                    <thead id="board-header" class="bg-slate-900 text-slate-400 border-b border-borderCol sticky top-0 z-20"></thead>
+                    <tbody id="board-body" class="divide-y divide-borderCol/50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: AUCTION & BUDGET TRACKER -->
+        <div id="tab-auction" class="space-y-6 hidden flex-1 flex flex-col">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Auction / Salary Cap Budget Tracker
+                    </h2>
+                    <p class="text-xs text-slate-400">Manage auction budgets, nominate players, and track winning bids for each pooler.</p>
+                </div>
+                <button onclick="openNominationModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    Record Auction Nomination / Win
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" id="auction-budget-cards">
+                <!-- Dynamically filled budget overview cards -->
+            </div>
+
+            <div class="bg-cardBg border border-borderCol rounded-2xl shadow-xl overflow-hidden flex-1 flex flex-col">
+                <div class="p-4 border-b border-borderCol font-semibold text-sm text-slate-200">Auction Acquisition Log</div>
+                <div class="overflow-x-auto custom-scrollbar max-h-[450px]">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-900 text-slate-400 border-b border-borderCol sticky top-0">
+                            <tr>
+                                <th class="p-3">Player Name</th>
+                                <th class="p-3">Pos</th>
+                                <th class="p-3">Team</th>
+                                <th class="p-3">Winning Pooler</th>
+                                <th class="p-3">Winning Bid ($)</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auction-log-body" class="divide-y divide-borderCol/50">
+                            <tr><td colspan="6" class="p-4 text-center text-slate-500 italic">No auction players purchased yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: PLAYER POOL & ROOKIES -->
+        <div id="tab-players" class="space-y-6 hidden flex-1 flex flex-col">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <div class="md:col-span-2 relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </span>
+                    <input type="text" id="player-search" oninput="filterPlayers()" placeholder="Search players by name, team, or rank..." class="w-full pl-10 pr-4 py-2.5 bg-cardBg border border-borderCol rounded-xl text-sm focus:outline-none focus:border-blue-500 text-slate-200 placeholder-slate-500 shadow-sm">
+                </div>
+                <div>
+                    <select id="position-filter" onchange="filterPlayers()" class="w-full px-3.5 py-2.5 bg-cardBg border border-borderCol rounded-xl text-sm focus:outline-none focus:border-blue-500 text-slate-200 shadow-sm">
+                        <option value="ALL">All Positions & Lists</option>
+                        <option value="QB">QB</option>
+                        <option value="RB">RB</option>
+                        <option value="WR">WR</option>
+                        <option value="TE">TE</option>
+                        <option value="ROOKIE">⭐ Rookies List Only</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="status-filter" onchange="filterPlayers()" class="w-full px-3.5 py-2.5 bg-cardBg border border-borderCol rounded-xl text-sm focus:outline-none focus:border-blue-500 text-slate-200 shadow-sm">
+                        <option value="AVAILABLE">Available Only</option>
+                        <option value="ALL">All Players (Including Drafted)</option>
+                        <option value="DRAFTED">Drafted Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-cardBg border border-borderCol rounded-2xl shadow-xl overflow-hidden flex-1 flex flex-col">
+                <div class="overflow-x-auto custom-scrollbar max-h-[650px]">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-900 text-slate-400 border-b border-borderCol sticky top-0 z-10">
+                            <tr>
+                                <th class="p-3 font-semibold">Rank</th>
+                                <th class="p-3 font-semibold">Player Name</th>
+                                <th class="p-3 font-semibold">Pos</th>
+                                <th class="p-3 font-semibold">Team</th>
+                                <th class="p-3 font-semibold">Bye</th>
+                                <th class="p-3 font-semibold text-center">Status / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="player-pool-body" class="divide-y divide-borderCol/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: TEAM ROSTERS -->
+        <div id="tab-rosters" class="space-y-6 hidden flex-1 flex flex-col">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                Poolers & Lineup Tracker (10 Teams)
+            </h2>
+            <div id="rosters-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <!-- Dynamically populated team roster cards -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Draft Modal for Assigning Player to Pooler -->
+    <div id="draft-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-cardBg border border-borderCol rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-borderCol pb-4">
+                <h3 class="text-base font-bold text-white" id="modal-title">Draft Player</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="modal-content" class="space-y-4">
+                <!-- Dynamic content -->
+            </div>
+            <div class="flex justify-end space-x-3 pt-3 border-t border-borderCol">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Cancel</button>
+                <button onclick="confirmDraftPlayer()" id="modal-confirm-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition">Confirm Pick</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auction Nomination Modal -->
+    <div id="auction-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-cardBg border border-borderCol rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-borderCol pb-4">
+                <h3 class="text-base font-bold text-white">Record Auction Acquisition</h3>
+                <button onclick="closeAuctionModal()" class="text-slate-400 hover:text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Filter Position</label>
+                        <select id="auction-pos-filter" onchange="populateAuctionPlayerSelect()" class="w-full px-3.5 py-2.5 bg-slate-900 border border-borderCol rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                            <option value="ALL">All Positions</option>
+                            <option value="QB">QB</option>
+                            <option value="RB">RB</option>
+                            <option value="WR">WR</option>
+                            <option value="TE">TE</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Winning Pooler</label>
+                        <select id="auction-pooler-select" class="w-full px-3.5 py-2.5 bg-slate-900 border border-borderCol rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Select Available Player (Original Order)</label>
+                    <select id="auction-player-select" class="w-full px-3.5 py-2.5 bg-slate-900 border border-borderCol rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Winning Bid Amount ($)</label>
+                    <input type="number" id="auction-bid-amount" value="10" min="1" max="200" class="w-full px-3.5 py-2.5 bg-slate-900 border border-borderCol rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-3 border-t border-borderCol">
+                <button onclick="closeAuctionModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Cancel</button>
+                <button onclick="confirmAuctionPurchase()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition">Record Player</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        const poolersList = [
+            "Pat Légaré",
+            "Dany Chèvre",
+            "MC",
+            "Fortier",
+            "Fred Dion",
+            "Marc SP",
+            "John",
+            "Kevin",
+            "Ti-Brin",
+            "Gohier"
+        ];
+
+        const tradedDraftMatrix = [
+            // R1
+            ["Pat Légaré", "Dany Chèvre", "Fortier", "Fortier", "Fortier", "Marc SP", "Dany Chèvre", "Fortier", "Pat Légaré", "Dany Chèvre"],
+            // R2
+            ["Pat Légaré", "Dany Chèvre", "MC", "Fortier", "Fred Dion", "Marc SP", "Dany Chèvre", "Fortier", "Pat Légaré", "Pat Légaré"],
+            // R3
+            ["Pat Légaré", "Dany", "MC", "Fortier", "Fred", "Marc SP", "Dany", "Fortier", "Pat Légaré", "Dany"],
+            // R4
+            ["Pat Légaré", "Dany", "MC", "Fortier", "Fred", "Marc SP", "Dany", "Fortier", "Pat Légaré", "Dany"],
+            // R5
+            ["Pat Légaré", "Dany", "MC", "Fortier", "Fred", "Marc SP", "John", "Fortier", "Ti-Brin", "Gohier"],
+            // R6
+            ["Pat Légaré", "John", "MC", "MC", "Fred", "Marc SP", "John", "Kev", "Ti-Brin", "Pat Légaré"],
+            // R7
+            ["Ti-Brin", "John", "MC", "Fred", "Fred", "Marc SP", "John", "Kev", "Ti-Brin", "Gohier"],
+            // R8
+            ["Ti-Brin", "Gohier", "MC", "Kev", "Fred", "Marc SP", "John", "Kev", "Ti-Brin", "Gohier"],
+            // R9
+            ["Ti-Brin", "John", "MC", "Kev", "Fred", "Marc SP", "John", "Kev", "Ti-Brin", "Gohier"],
+            // R10
+            ["Gohier", "Dany", "MC", "Kev", "Fred", "Marc SP", "John", "Kev", "Ti-Brin", "Gohier"]
+        ];
+
+        for (let r = 11; r <= 16; r++) {
+            let roundArr = [];
+            let isEven = (r % 2 === 0);
+            for (let p = 0; p < 10; p++) {
+                let poolerIndex = isEven ? (9 - p) : p;
+                roundArr.push(poolersList[poolerIndex]);
+            }
+            tradedDraftMatrix.push(roundArr);
+        }
+
+        const rawPlayers = [
+            // WIDE RECEIVERS (1 to 283)
+            { rank: 1, name: "Ja'Marr Chase", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 2, name: "Puka Nacua", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 3, name: "Jaxon Smith-Njigba", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 4, name: "Amon-Ra St. Brown", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 5, name: "Justin Jefferson", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 6, name: "CeeDee Lamb", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 7, name: "Drake London", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 8, name: "A.J. Brown", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 9, name: "Nico Collins", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 10, name: "Chris Olave", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 11, name: "George Pickens", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 12, name: "DeVonta Smith", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 13, name: "Malik Nabers", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 14, name: "Rashee Rice", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 15, name: "Zay Flowers", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 16, name: "Garrett Wilson", pos: "WR", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 17, name: "Jaylen Waddle", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 18, name: "Ladd McConkey", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 19, name: "Tee Higgins", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 20, name: "Tetairoa McMillan", pos: "WR", team: "CAR", bye: "5", isRookie: true },
+            { rank: 21, name: "Emeka Egbuka", pos: "WR", team: "TB", bye: "10", isRookie: true },
+            { rank: 22, name: "Luther Burden III", pos: "WR", team: "CHI", bye: "10", isRookie: true },
+            { rank: 23, name: "Terry McLaurin", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 24, name: "DJ Moore", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 25, name: "Davante Adams", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 26, name: "Jameson Williams", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 27, name: "Christian Watson", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 28, name: "Parker Washington", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 29, name: "Mike Evans", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 30, name: "Rome Odunze", pos: "WR", team: "CHI", bye: "10", isRookie: false },
+            { rank: 31, name: "Carnell Tate", pos: "WR", team: "TEN", bye: "9", isRookie: true },
+            { rank: 32, name: "Marvin Harrison Jr.", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 33, name: "Chris Godwin Jr.", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 34, name: "DK Metcalf", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 35, name: "Michael Pittman Jr.", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 36, name: "Brian Thomas Jr.", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 37, name: "Wan'Dale Robinson", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 38, name: "Courtland Sutton", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 39, name: "Michael Wilson", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 40, name: "Josh Downs", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 41, name: "Stefon Diggs", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 42, name: "Quentin Johnston", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 43, name: "Alec Pierce", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 44, name: "Jayden Reed", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 45, name: "Jordan Addison", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 46, name: "KC Concepcion", pos: "WR", team: "CLE", bye: "11", isRookie: true },
+            { rank: 47, name: "Jakobi Meyers", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 48, name: "Makai Lemon", pos: "WR", team: "PHI", bye: "10", isRookie: true },
+            { rank: 49, name: "De'Zhaun Stribling", pos: "WR", team: "SF", bye: "8", isRookie: true },
+            { rank: 50, name: "Matthew Golden", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 51, name: "Jalen Coker", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 52, name: "Khalil Shakir", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 53, name: "Romeo Doubs", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 54, name: "Xavier Worthy", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 55, name: "Jordyn Tyson", pos: "WR", team: "NO", bye: "8", isRookie: true },
+            { rank: 56, name: "Rashid Shaheed", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 57, name: "Deebo Samuel Sr.", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 58, name: "Denzel Boston", pos: "WR", team: "CLE", bye: "11", isRookie: true },
+            { rank: 59, name: "Tre Tucker", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 60, name: "Adonai Mitchell", pos: "WR", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 61, name: "Kayshon Boutte", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 62, name: "Jerry Jeudy", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 63, name: "Jalen McMillan", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 64, name: "Dontayvion Wicks", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 65, name: "Jauan Jennings", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 66, name: "Jalen Nailor", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 67, name: "Omar Cooper Jr.", pos: "WR", team: "NYJ", bye: "13", isRookie: true },
+            { rank: 68, name: "Keenan Allen", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 69, name: "Tre' Harris", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 70, name: "Pat Bryant", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 71, name: "Malik Washington", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 72, name: "Ryan Flournoy", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 73, name: "Calvin Ridley", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 74, name: "Ja'Kobi Lane", pos: "WR", team: "BAL", bye: "13", isRookie: true },
+            { rank: 75, name: "Jaylin Noel", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 76, name: "Travis Hunter", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 77, name: "Zachariah Branch", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 78, name: "Chris Bell", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 79, name: "Cooper Kupp", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 80, name: "Rashod Bateman", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 81, name: "Malachi Fields", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 82, name: "Isaac TeSlaa", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 83, name: "Germie Bernard", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 84, name: "Darnell Mooney", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 85, name: "Devaughn Vele", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 86, name: "Antonio Williams", pos: "WR", team: "WAS", bye: "7", isRookie: true },
+            { rank: 87, name: "Tank Dell", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 88, name: "Caleb Douglas", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 89, name: "Keon Coleman", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 90, name: "Troy Franklin", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 91, name: "Ted Hurst III", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 92, name: "Jack Bech", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 93, name: "Elic Ayomanor", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 94, name: "Tyquan Thornton", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 95, name: "Chimere Dike", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 96, name: "Tory Horton", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 97, name: "Xavier Legette", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 98, name: "Cyrus Allen", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 99, name: "Darius Slayton", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 100, name: "Marvin Mims Jr.", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 101, name: "Elijah Sarratt", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 102, name: "Christian Kirk", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 103, name: "Kyle Williams", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 104, name: "Hollywood Brown", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 105, name: "Isaiah Bond", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 106, name: "Skyler Bell", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 107, name: "Mack Hollins", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 108, name: "DeMario Douglas", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 109, name: "Andrei Iosivas", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 110, name: "Brandon Aiyuk", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 111, name: "Jahan Dotson", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 112, name: "Bryce Lance", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 113, name: "Xavier Hutchinson", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 114, name: "Jalen Tolbert", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 115, name: "Tyreek Hill", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 116, name: "Tez Johnson", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 117, name: "Olamide Zaccheaus", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 118, name: "Kendrick Bourne", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 119, name: "Luke McCaffrey", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 120, name: "Jalen Royals", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 121, name: "Joshua Palmer", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 122, name: "Brenen Thompson", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 123, name: "Malik Benson", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 124, name: "Treylon Burks", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 125, name: "Konata Mumpfield", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 126, name: "Zavion Thomas", pos: "WR", team: "CHI", bye: "10", isRookie: false },
+            { rank: 127, name: "Cedric Tillman", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 128, name: "Kevin Coleman Jr.", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 129, name: "Kalif Raymond", pos: "WR", team: "CHI", bye: "10", isRookie: false },
+            { rank: 130, name: "Roman Wilson", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 131, name: "Tutu Atwell", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 132, name: "Dont'e Thornton Jr.", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 133, name: "Savion Williams", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 134, name: "Jaylin Lane", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 135, name: "Colbie Young", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 136, name: "KaVontae Turpin", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 137, name: "Demarcus Robinson", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 138, name: "John Metchie III", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 139, name: "Odell Beckham Jr.", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 140, name: "CJ Daniels", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 141, name: "Jordan Whittington", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 142, name: "Chris Brazzell II", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 143, name: "Ashton Dulin", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 144, name: "Barion Brown", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 145, name: "Devontez Walker", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 146, name: "Dyami Brown", pos: "WR", team: "WAS", bye: "7", isRookie: false },
+            { rank: 147, name: "Nick Westbrook-Ikhine", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 148, name: "Deion Burks", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 149, name: "Tai Felton", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 150, name: "Jahdae Walker", pos: "WR", team: "CHI", bye: "10", isRookie: false },
+            { rank: 151, name: "Isaiah Williams", pos: "WR", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 152, name: "Reggie Virgil", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 153, name: "Jimmy Horn Jr.", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 154, name: "Elijah Moore", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 155, name: "KeAndre Lambert-Smith", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 156, name: "Greg Dortch", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 157, name: "Xavier Smith", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 158, name: "Jacob Cowing", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 159, name: "Tim Patrick", pos: "WR", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 160, name: "Efton Chism III", pos: "WR", team: "NE", bye: "11", isRookie: false },
+            { rank: 161, name: "Josh Cameron", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 162, name: "Dohnte Meyers", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 163, name: "Jordan Watkins", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 164, name: "Lil'Jordan Humphrey", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 165, name: "Kaden Wetjen", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 166, name: "Jonathan Mingo", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 167, name: "Darius Cooper", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 168, name: "Myles Price", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 169, name: "Jalen Brooks", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 170, name: "DeAndre Hopkins", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 171, name: "Bo Melton", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 172, name: "Laquon Treadwell", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 173, name: "Derius Davis", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 174, name: "Tay Martin", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 175, name: "Jared Wayne", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 176, name: "Devin Duvernay", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 177, name: "Skyy Moore", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 178, name: "Brycen Tremayne", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 179, name: "Xavier Restrepo", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 180, name: "Chris Blair", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 181, name: "Ben Skowronek", pos: "WR", team: "PIT", bye: "9", isRookie: false },
+            { rank: 182, name: "Marquez Valdes-Scantling", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 183, name: "Dareke Young", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 184, name: "Tyler Lockett", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 185, name: "Malachi Corley", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 186, name: "Kameron Johnson", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 187, name: "Mason Tipton", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 188, name: "Theo Wease Jr.", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 189, name: "David Sills V", pos: "WR", team: "TB", bye: "10", isRookie: false },
+            { rank: 190, name: "Arian Smith", pos: "WR", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 191, name: "Nikko Remigio", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 192, name: "Jermaine Burton", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 193, name: "Camden Brown", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 194, name: "Tyrell Shavers", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 195, name: "Mitch Tinsley", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 196, name: "Kevin Austin Jr.", pos: "WR", team: "NO", bye: "8", isRookie: false },
+            { rank: 197, name: "LaJohntay Wester", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 198, name: "Scotty Miller", pos: "WR", team: "CHI", bye: "10", isRookie: false },
+            { rank: 199, name: "Montorie Foster Jr.", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 200, name: "Brandin Cooks", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 201, name: "Jeshaun Jones", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 202, name: "Jalen Reagor", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 203, name: "Diontae Johnson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 204, name: "CJ Williams", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 205, name: "J. Michael Sturdivant", pos: "WR", team: "GB", bye: "11", isRookie: false },
+            { rank: 206, name: "Simi Fehoko", pos: "WR", team: "ARI", bye: "14", isRookie: false },
+            { rank: 207, name: "Gabe Davis", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 208, name: "Dominic Lovett", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 209, name: "JuJu Smith-Schuster", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 210, name: "Tom Kennedy", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 211, name: "Jake Bobo", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 212, name: "Michael Bandy", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 213, name: "Michael Woods II", pos: "WR", team: "DEN", bye: "10", isRookie: false },
+            { rank: 214, name: "Emmanuel Henderson Jr.", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 215, name: "Casey Washington", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 216, name: "Van Jefferson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 217, name: "Kendrick Law", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 218, name: "Velus Jones Jr.", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 219, name: "Ke'Shawn Williams", pos: "WR", team: "CIN", bye: "6", isRookie: false },
+            { rank: 220, name: "Coleman Owen", pos: "WR", team: "IND", bye: "13", isRookie: false },
+            { rank: 221, name: "Noah Brown", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 222, name: "Juice Wells Jr.", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 223, name: "Curtis Samuel", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 224, name: "Michael Wortham", pos: "WR", team: "JAC", bye: "7", isRookie: false },
+            { rank: 225, name: "Tylan Wallace", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 226, name: "Ryan Miller", pos: "WR", team: "MIA", bye: "6", isRookie: false },
+            { rank: 227, name: "Jackson Meeks", pos: "WR", team: "DET", bye: "6", isRookie: false },
+            { rank: 228, name: "Anthony Gould", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 229, name: "Dalevon Campbell", pos: "WR", team: "LAC", bye: "7", isRookie: false },
+            { rank: 230, name: "Mecole Hardman Jr.", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 231, name: "Tahj Washington", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 232, name: "Justin Watson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 233, name: "Sterling Shepard", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 234, name: "Quentin Skinner", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 235, name: "Bub Means", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 236, name: "Bryce Oliver", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 237, name: "Kendric Pryor", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 238, name: "Xavier Weaver", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 239, name: "Maurice Alexander", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 240, name: "Deontay Burnett", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 241, name: "K.J. Osborn", pos: "WR", team: "TEN", bye: "9", isRookie: false },
+            { rank: 242, name: "Cody White", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 243, name: "Dylan Drummond", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 244, name: "David Moore", pos: "WR", team: "CAR", bye: "5", isRookie: false },
+            { rank: 245, name: "Andrew Armstrong", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 246, name: "Chris Moore", pos: "WR", team: "BAL", bye: "13", isRookie: false },
+            { rank: 247, name: "Lewis Bond", pos: "WR", team: "HOU", bye: "8", isRookie: false },
+            { rank: 248, name: "Julian Hicks", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 249, name: "Britain Covey", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 250, name: "Michael Briscoe", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 251, name: "Braxton Berrios", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 252, name: "Ronnie Bell", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 253, name: "Gunner Olszewski", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 254, name: "Jalin Hyatt", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 255, name: "Dillon Bell", pos: "WR", team: "MIN", bye: "6", isRookie: false },
+            { rank: 256, name: "Beaux Collins", pos: "WR", team: "ATL", bye: "11", isRookie: false },
+            { rank: 257, name: "Tyler Johnson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 258, name: "Anthony Smith", pos: "WR", team: "DAL", bye: "14", isRookie: false },
+            { rank: 259, name: "Trent Sherfield Sr.", pos: "WR", team: "BUF", bye: "7", isRookie: false },
+            { rank: 260, name: "Trenton Irwin", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 261, name: "Alex Bachman", pos: "WR", team: "LAR", bye: "11", isRookie: false },
+            { rank: 262, name: "Deven Thompkins", pos: "WR", team: "LV", bye: "13", isRookie: false },
+            { rank: 263, name: "Samori Toure", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 264, name: "KhaDarel Hodge", pos: "WR", team: "SF", bye: "8", isRookie: false },
+            { rank: 265, name: "Isaiah Hodgins", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 266, name: "Dalen Cambre", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 267, name: "Malik Taylor", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 268, name: "Brandon Powell", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 269, name: "Gage Larvadain", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 270, name: "Bisi Johnson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 271, name: "Jamari Thrash", pos: "WR", team: "CLE", bye: "11", isRookie: false },
+            { rank: 272, name: "Jeff Caldwell", pos: "WR", team: "KC", bye: "5", isRookie: false },
+            { rank: 273, name: "Quez Watkins", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 274, name: "Tru Edwards", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 275, name: "Charlie Jones", pos: "WR", team: "NYG", bye: "8", isRookie: false },
+            { rank: 276, name: "DeAndre Carter", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 277, name: "Allen Lazard", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 278, name: "Xavier Gipson", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 279, name: "Johnny Wilson", pos: "WR", team: "PHI", bye: "10", isRookie: false },
+            { rank: 280, name: "Ray-Ray McCloud III", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 281, name: "Ricky White III", pos: "WR", team: "SEA", bye: "11", isRookie: false },
+            { rank: 282, name: "Zach Pascal", pos: "WR", team: "FA", bye: "-", isRookie: false },
+            { rank: 283, name: "Zay Jones", pos: "WR", team: "FA", bye: "-", isRookie: false },
+
+            // RUNNING BACKS (301 to 450)
+            { rank: 301, name: "Jahmyr Gibbs", pos: "RB", team: "DET", bye: "6", isRookie: false },
+            { rank: 302, name: "Bijan Robinson", pos: "RB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 303, name: "Christian McCaffrey", pos: "RB", team: "SF", bye: "8", isRookie: false },
+            { rank: 304, name: "Jonathan Taylor", pos: "RB", team: "IND", bye: "13", isRookie: false },
+            { rank: 305, name: "James Cook III", pos: "RB", team: "BUF", bye: "7", isRookie: false },
+            { rank: 306, name: "Chase Brown", pos: "RB", team: "CIN", bye: "6", isRookie: false },
+            { rank: 307, name: "De'Von Achane", pos: "RB", team: "MIA", bye: "6", isRookie: false },
+            { rank: 308, name: "Saquon Barkley", pos: "RB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 309, name: "Omarion Hampton", pos: "RB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 310, name: "Kenneth Walker III", pos: "RB", team: "KC", bye: "5", isRookie: false },
+            { rank: 311, name: "Ashton Jeanty", pos: "RB", team: "LV", bye: "13", isRookie: false },
+            { rank: 312, name: "Derrick Henry", pos: "RB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 313, name: "Breece Hall", pos: "RB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 314, name: "Jeremiyah Love", pos: "RB", team: "ARI", bye: "14", isRookie: true },
+            { rank: 315, name: "Kyren Williams", pos: "RB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 316, name: "Javonte Williams", pos: "RB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 317, name: "Travis Etienne Jr.", pos: "RB", team: "NO", bye: "8", isRookie: false },
+            { rank: 318, name: "D'Andre Swift", pos: "RB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 319, name: "Bucky Irving", pos: "RB", team: "TB", bye: "10", isRookie: false },
+            { rank: 320, name: "Cam Skattebo", pos: "RB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 321, name: "David Montgomery", pos: "RB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 322, name: "Quinshon Judkins", pos: "RB", team: "CLE", bye: "11", isRookie: true },
+            { rank: 323, name: "Bhayshul Tuten", pos: "RB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 324, name: "Jadarian Price", pos: "RB", team: "SEA", bye: "11", isRookie: true },
+            { rank: 325, name: "TreVeyon Henderson", pos: "RB", team: "NE", bye: "11", isRookie: true },
+            { rank: 326, name: "Rhamondre Stevenson", pos: "RB", team: "NE", bye: "11", isRookie: false },
+            { rank: 327, name: "Jaylen Warren", pos: "RB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 328, name: "Tony Pollard", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 329, name: "Rico Dowdle", pos: "RB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 330, name: "Jonathon Brooks", pos: "RB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 331, name: "RJ Harvey", pos: "RB", team: "DEN", bye: "10", isRookie: false },
+            { rank: 332, name: "Chuba Hubbard", pos: "RB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 333, name: "Kenny Gainwell", pos: "RB", team: "TB", bye: "10", isRookie: false },
+            { rank: 334, name: "J.K. Dobbins", pos: "RB", team: "DEN", bye: "10", isRookie: false },
+            { rank: 335, name: "Blake Corum", pos: "RB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 336, name: "Rachaad White", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 337, name: "MarShawn Lloyd", pos: "RB", team: "GB", bye: "11", isRookie: false },
+            { rank: 338, name: "Jordan Mason", pos: "RB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 339, name: "Jacory Croskey-Merritt", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 340, name: "Aaron Jones Sr.", pos: "RB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 341, name: "Kyle Monangai", pos: "RB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 342, name: "Woody Marks", pos: "RB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 343, name: "Tyler Allgeier", pos: "RB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 344, name: "Chris Rodriguez Jr.", pos: "RB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 345, name: "Tyjae Spears", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 346, name: "Jonah Coleman", pos: "RB", team: "DEN", bye: "10", isRookie: true },
+            { rank: 347, name: "Dylan Sampson", pos: "RB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 348, name: "Keaton Mitchell", pos: "RB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 349, name: "Mike Washington Jr.", pos: "RB", team: "LV", bye: "13", isRookie: false },
+            { rank: 350, name: "Zach Charbonnet", pos: "RB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 351, name: "Josh Jacobs", pos: "RB", team: "GB", bye: "11", isRookie: false },
+            { rank: 352, name: "Tank Bigsby", pos: "RB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 353, name: "Alvin Kamara", pos: "RB", team: "NO", bye: "8", isRookie: false },
+            { rank: 354, name: "Tyrone Tracy Jr.", pos: "RB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 355, name: "Brian Robinson Jr.", pos: "RB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 356, name: "Braelon Allen", pos: "RB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 357, name: "Emmett Johnson", pos: "RB", team: "KC", bye: "5", isRookie: false },
+            { rank: 358, name: "Ray Davis", pos: "RB", team: "BUF", bye: "7", isRookie: false },
+            { rank: 359, name: "Kimani Vidal", pos: "RB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 360, name: "Isiah Pacheco", pos: "RB", team: "DET", bye: "6", isRookie: false },
+            { rank: 361, name: "Sean Tucker", pos: "RB", team: "TB", bye: "10", isRookie: false },
+            { rank: 362, name: "Nicholas Singleton", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 363, name: "Kaelon Black", pos: "RB", team: "SF", bye: "8", isRookie: false },
+            { rank: 364, name: "Kaytron Allen", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 365, name: "Jaylen Wright", pos: "RB", team: "MIA", bye: "6", isRookie: false },
+            { rank: 366, name: "Malik Davis", pos: "RB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 367, name: "James Conner", pos: "RB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 368, name: "Najee Harris", pos: "RB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 369, name: "George Holani", pos: "RB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 370, name: "Justice Hill", pos: "RB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 371, name: "Emanuel Wilson", pos: "RB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 372, name: "Kaleb Johnson", pos: "RB", team: "GB", bye: "11", isRookie: false },
+            { rank: 373, name: "Chris Brooks", pos: "RB", team: "GB", bye: "11", isRookie: false },
+            { rank: 374, name: "Samaje Perine", pos: "RB", team: "CIN", bye: "6", isRookie: false },
+            { rank: 375, name: "Ollie Gordon II", pos: "RB", team: "MIA", bye: "6", isRookie: false },
+            { rank: 376, name: "Demond Claiborne", pos: "RB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 377, name: "Isaiah Davis", pos: "RB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 378, name: "LeQuint Allen Jr.", pos: "RB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 379, name: "Ty Johnson", pos: "RB", team: "BUF", bye: "7", isRookie: false },
+            { rank: 380, name: "Jordan James", pos: "RB", team: "SF", bye: "8", isRookie: false },
+            { rank: 381, name: "Seth McGowan", pos: "RB", team: "IND", bye: "13", isRookie: false },
+            { rank: 382, name: "Kendre Miller", pos: "RB", team: "NO", bye: "8", isRookie: false },
+            { rank: 383, name: "DJ Giddens", pos: "RB", team: "IND", bye: "13", isRookie: false },
+            { rank: 384, name: "Devin Singletary", pos: "RB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 385, name: "Brashard Smith", pos: "RB", team: "KC", bye: "5", isRookie: false },
+            { rank: 386, name: "Adam Randall", pos: "RB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 387, name: "Emari Demercado", pos: "RB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 388, name: "Trevor Etienne", pos: "RB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 389, name: "Jaydon Blue", pos: "RB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 390, name: "Devin Neal", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 391, name: "Trey Benson", pos: "RB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 392, name: "Tahj Brooks", pos: "RB", team: "CIN", bye: "6", isRookie: false },
+            { rank: 393, name: "Will Shipley", pos: "RB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 394, name: "Isaac Guerendo", pos: "RB", team: "SF", bye: "8", isRookie: false },
+            { rank: 395, name: "Audric Estime", pos: "RB", team: "NO", bye: "8", isRookie: false },
+            { rank: 396, name: "Jerome Ford", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 397, name: "Jaleel McLaughlin", pos: "RB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 398, name: "Jarquez Hunter", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 399, name: "Kareem Hunt", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 400, name: "Jacob Saylors", pos: "RB", team: "DET", bye: "6", isRookie: false },
+            { rank: 401, name: "Bam Knight", pos: "RB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 402, name: "Roschon Johnson", pos: "RB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 403, name: "Raheim Sanders", pos: "RB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 404, name: "Eli Heidenreich", pos: "RB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 405, name: "Joe Mixon", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 406, name: "Sione Vaki", pos: "RB", team: "DET", bye: "6", isRookie: false },
+            { rank: 407, name: "Rasheen Ali", pos: "RB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 408, name: "Michael Carter", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 409, name: "Kyle Juszczyk", pos: "RB", team: "SF", bye: "8", isRookie: false },
+            { rank: 410, name: "J'Mari Taylor", pos: "RB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 411, name: "Jawhar Jordan", pos: "RB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 412, name: "Dylan Laube", pos: "RB", team: "LV", bye: "13", isRookie: false },
+            { rank: 413, name: "AJ Dillon", pos: "RB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 414, name: "Phil Mafah", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 415, name: "Corey Kiner", pos: "RB", team: "NE", bye: "11", isRookie: false },
+            { rank: 416, name: "Hunter Luepke", pos: "RB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 417, name: "Austin Ekeler", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 418, name: "Jeremy McNichols", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 419, name: "Ameer Abdullah", pos: "RB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 420, name: "Ronnie Rivers", pos: "RB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 421, name: "Dameon Pierce", pos: "RB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 422, name: "Tyler Goodson", pos: "RB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 423, name: "Jam Miller", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 424, name: "Julius Chestnut", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 425, name: "Tyler Badie", pos: "RB", team: "DEN", bye: "10", isRookie: false },
+            { rank: 426, name: "Antonio Gibson", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 427, name: "Max Bredeson", pos: "RB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 428, name: "Terrell Jennings", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 429, name: "Patrick Ricard", pos: "RB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 430, name: "Reggie Gilliam", pos: "RB", team: "NE", bye: "11", isRookie: false },
+            { rank: 431, name: "Kene Nwangwu", pos: "RB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 432, name: "Khalil Herbert", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 433, name: "Alec Ingold", pos: "RB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 434, name: "Antonio Williams", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 435, name: "Zavier Scott", pos: "RB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 436, name: "Jaydn Ott", pos: "RB", team: "KC", bye: "5", isRookie: false },
+            { rank: 437, name: "Josh Williams", pos: "RB", team: "TB", bye: "10", isRookie: false },
+            { rank: 438, name: "Damien Martinez", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 439, name: "Miles Sanders", pos: "RB", team: "FA", bye: "-", isRookie: false },
+            { rank: 440, name: "Zamir White", pos: "RB", team: "NO", bye: "8", isRookie: false },
+            { rank: 441, name: "Brittain Brown", pos: "RB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 442, name: "Kalel Mullings", pos: "RB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 443, name: "Raheem Mostert", pos: "RB", team: "LV", bye: "13", isRookie: false },
+            { rank: 444, name: "Pierre Strong Jr.", pos: "RB", team: "GB", bye: "11", isRookie: false },
+            { rank: 445, name: "Travis Homer", pos: "RB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 446, name: "Dean Connors", pos: "RB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 447, name: "Robert Henry Jr.", pos: "RB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 448, name: "Nathan Carter", pos: "RB", team: "KC", bye: "5", isRookie: false },
+            { rank: 449, name: "Noah Whittington", pos: "RB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 450, name: "Alexander Mattison", pos: "RB", team: "FA", bye: "-", isRookie: false },
+
+            // QUARTERBACKS (501 to 620)
+            { rank: 501, name: "Josh Allen", pos: "QB", team: "BUF", bye: "7", isRookie: false },
+            { rank: 502, name: "Lamar Jackson", pos: "QB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 503, name: "Drake Maye", pos: "QB", team: "NE", bye: "11", isRookie: false },
+            { rank: 504, name: "Joe Burrow", pos: "QB", team: "CIN", bye: "6", isRookie: false },
+            { rank: 505, name: "Jalen Hurts", pos: "QB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 506, name: "Jayden Daniels", pos: "QB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 507, name: "Caleb Williams", pos: "QB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 508, name: "Justin Herbert", pos: "QB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 509, name: "Trevor Lawrence", pos: "QB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 510, name: "Dak Prescott", pos: "QB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 511, name: "Brock Purdy", pos: "QB", team: "SF", bye: "8", isRookie: false },
+            { rank: 512, name: "Bo Nix", pos: "QB", team: "DEN", bye: "10", isRookie: false },
+            { rank: 513, name: "Jaxson Dart", pos: "QB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 514, name: "Patrick Mahomes II", pos: "QB", team: "KC", bye: "5", isRookie: false },
+            { rank: 515, name: "Jared Goff", pos: "QB", team: "DET", bye: "6", isRookie: false },
+            { rank: 516, name: "Matthew Stafford", pos: "QB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 517, name: "Kyler Murray", pos: "QB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 518, name: "Jordan Love", pos: "QB", team: "GB", bye: "11", isRookie: false },
+            { rank: 519, name: "Baker Mayfield", pos: "QB", team: "TB", bye: "10", isRookie: false },
+            { rank: 520, name: "Tyler Shough", pos: "QB", team: "NO", bye: "8", isRookie: false },
+            { rank: 521, name: "Malik Willis", pos: "QB", team: "MIA", bye: "6", isRookie: false },
+            { rank: 522, name: "Sam Darnold", pos: "QB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 523, name: "C.J. Stroud", pos: "QB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 524, name: "Daniel Jones", pos: "QB", team: "IND", bye: "13", isRookie: false },
+            { rank: 525, name: "Cam Ward", pos: "QB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 526, name: "Bryce Young", pos: "QB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 527, name: "Jacoby Brissett", pos: "QB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 528, name: "Aaron Rodgers", pos: "QB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 529, name: "Geno Smith", pos: "QB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 530, name: "Fernando Mendoza", pos: "QB", team: "LV", bye: "13", isRookie: true },
+            { rank: 531, name: "Michael Penix Jr.", pos: "QB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 532, name: "Tua Tagovailoa", pos: "QB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 533, name: "Shedeur Sanders", pos: "QB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 534, name: "Kirk Cousins", pos: "QB", team: "LV", bye: "13", isRookie: false },
+            { rank: 535, name: "Deshaun Watson", pos: "QB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 536, name: "Carson Beck", pos: "QB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 537, name: "J.J. McCarthy", pos: "QB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 538, name: "Mac Jones", pos: "QB", team: "SF", bye: "8", isRookie: false },
+            { rank: 539, name: "Justin Fields", pos: "QB", team: "KC", bye: "5", isRookie: false },
+            { rank: 540, name: "Ty Simpson", pos: "QB", team: "LAR", bye: "11", isRookie: false },
+            { rank: 541, name: "Anthony Richardson Sr.", pos: "QB", team: "IND", bye: "13", isRookie: false },
+            { rank: 542, name: "Joe Flacco", pos: "QB", team: "CIN", bye: "6", isRookie: false },
+            { rank: 543, name: "Marcus Mariota", pos: "QB", team: "WAS", bye: "7", isRookie: false },
+            { rank: 544, name: "Jameis Winston", pos: "QB", team: "NYG", bye: "8", isRookie: false },
+            { rank: 545, name: "Cade Klubnik", pos: "QB", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 546, name: "Tyrod Taylor", pos: "QB", team: "GB", bye: "11", isRookie: false },
+            { rank: 547, name: "Davis Mills", pos: "QB", team: "HOU", bye: "8", isRookie: false },
+            { rank: 548, name: "Quinn Ewers", pos: "QB", team: "JAC", bye: "7", isRookie: false },
+            { rank: 549, name: "Tyson Bagent", pos: "QB", team: "CHI", bye: "10", isRookie: false },
+            { rank: 550, name: "Gardner Minshew II", pos: "QB", team: "ARI", bye: "14", isRookie: false },
+            { rank: 551, name: "Joe Milton III", pos: "QB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 552, name: "Spencer Rattler", pos: "QB", team: "NO", bye: "8", isRookie: false },
+            { rank: 553, name: "Taylen Green", pos: "QB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 554, name: "Tyler Huntley", pos: "QB", team: "BAL", bye: "13", isRookie: false },
+            { rank: 555, name: "Trey Lance", pos: "QB", team: "LAC", bye: "7", isRookie: false },
+            { rank: 556, name: "Riley Leonard", pos: "QB", team: "IND", bye: "13", isRookie: false },
+            { rank: 557, name: "Jarrett Stidham", pos: "QB", team: "DEN", bye: "10", isRookie: false },
+            { rank: 558, name: "Jalen Milroe", pos: "QB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 559, name: "Carson Wentz", pos: "QB", team: "MIN", bye: "6", isRookie: false },
+            { rank: 560, name: "Mitchell Trubisky", pos: "QB", team: "TEN", bye: "9", isRookie: false },
+            { rank: 561, name: "Sam Howell", pos: "QB", team: "DAL", bye: "14", isRookie: false },
+            { rank: 562, name: "Drew Allar", pos: "QB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 563, name: "Mason Rudolph", pos: "QB", team: "PIT", bye: "9", isRookie: false },
+            { rank: 564, name: "Kenny Pickett", pos: "QB", team: "CAR", bye: "5", isRookie: false },
+            { rank: 565, name: "Tommy DeVito", pos: "QB", team: "NE", bye: "11", isRookie: false },
+            { rank: 566, name: "Dillon Gabriel", pos: "QB", team: "CLE", bye: "11", isRookie: false },
+            { rank: 567, name: "Andy Dalton", pos: "QB", team: "PHI", bye: "10", isRookie: false },
+            { rank: 568, name: "Joshua Dobbs", pos: "QB", team: "DET", bye: "6", isRookie: false },
+            { rank: 569, name: "Drew Lock", pos: "QB", team: "SEA", bye: "11", isRookie: false },
+            { rank: 570, name: "Jalon Daniels", pos: "QB", team: "TB", bye: "10", isRookie: false },
+            { rank: 571, name: "Jack Strand", pos: "QB", team: "ATL", bye: "11", isRookie: false },
+            { rank: 572, name: "Kyle Allen", pos: "QB", team: "BUF", bye: "7", isRookie: false },
+            { rank: 573, name: "Kyle McCord", pos: "QB", team: "MIA", bye: "6", isRookie: false },
+            { rank: 574, name: "Will Howard", pos: "QB", team: "PIT", bye: "9", isRookie: false },
+
+            // TIGHT ENDS (701 to 782)
+            { rank: 701, name: "Trey McBride", pos: "TE", team: "ARI", bye: "14", isRookie: false },
+            { rank: 702, name: "Brock Bowers", pos: "TE", team: "LV", bye: "13", isRookie: false },
+            { rank: 703, name: "Colston Loveland", pos: "TE", team: "CHI", bye: "10", isRookie: true },
+            { rank: 704, name: "Tyler Warren", pos: "TE", team: "IND", bye: "13", isRookie: false },
+            { rank: 705, name: "Harold Fannin Jr.", pos: "TE", team: "CLE", bye: "11", isRookie: true },
+            { rank: 706, name: "Kyle Pitts Sr.", pos: "TE", team: "ATL", bye: "11", isRookie: false },
+            { rank: 707, name: "Tucker Kraft", pos: "TE", team: "GB", bye: "11", isRookie: false },
+            { rank: 708, name: "Sam LaPorta", pos: "TE", team: "DET", bye: "6", isRookie: false },
+            { rank: 709, name: "George Kittle", pos: "TE", team: "SF", bye: "8", isRookie: false },
+            { rank: 710, name: "Travis Kelce", pos: "TE", team: "KC", bye: "5", isRookie: false },
+            { rank: 711, name: "Dalton Kincaid", pos: "TE", team: "BUF", bye: "7", isRookie: false },
+            { rank: 712, name: "Isaiah Likely", pos: "TE", team: "NYG", bye: "8", isRookie: false },
+            { rank: 713, name: "Dallas Goedert", pos: "TE", team: "PHI", bye: "10", isRookie: false },
+            { rank: 714, name: "Jake Ferguson", pos: "TE", team: "DAL", bye: "14", isRookie: false },
+            { rank: 715, name: "Juwan Johnson", pos: "TE", team: "NO", bye: "8", isRookie: false },
+            { rank: 716, name: "Mark Andrews", pos: "TE", team: "BAL", bye: "13", isRookie: false },
+            { rank: 717, name: "Dalton Schultz", pos: "TE", team: "HOU", bye: "8", isRookie: false },
+            { rank: 718, name: "Brenton Strange", pos: "TE", team: "JAC", bye: "7", isRookie: false },
+            { rank: 719, name: "Chig Okonkwo", pos: "TE", team: "WAS", bye: "7", isRookie: false },
+            { rank: 720, name: "Hunter Henry", pos: "TE", team: "NE", bye: "11", isRookie: false },
+            { rank: 721, name: "T.J. Hockenson", pos: "TE", team: "MIN", bye: "6", isRookie: false },
+            { rank: 722, name: "AJ Barner", pos: "TE", team: "SEA", bye: "11", isRookie: false },
+            { rank: 723, name: "Terrance Ferguson", pos: "TE", team: "LAR", bye: "11", isRookie: false },
+            { rank: 724, name: "Kenyon Sadiq", pos: "TE", team: "NYJ", bye: "13", isRookie: true },
+            { rank: 725, name: "Gunnar Helm", pos: "TE", team: "TEN", bye: "9", isRookie: false },
+            { rank: 726, name: "Cade Otton", pos: "TE", team: "TB", bye: "10", isRookie: false },
+            { rank: 727, name: "Pat Freiermuth", pos: "TE", team: "PIT", bye: "9", isRookie: false },
+            { rank: 728, name: "Oronde Gadsden II", pos: "TE", team: "LAC", bye: "7", isRookie: false },
+            { rank: 729, name: "Evan Engram", pos: "TE", team: "DEN", bye: "10", isRookie: false },
+            { rank: 730, name: "David Njoku", pos: "TE", team: "LAC", bye: "7", isRookie: false },
+            { rank: 731, name: "Greg Dulcich", pos: "TE", team: "MIA", bye: "6", isRookie: false },
+            { rank: 732, name: "Colby Parkinson", pos: "TE", team: "LAR", bye: "11", isRookie: false },
+            { rank: 733, name: "Mason Taylor", pos: "TE", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 734, name: "Theo Johnson", pos: "TE", team: "NYG", bye: "8", isRookie: false },
+            { rank: 735, name: "Eli Stowers", pos: "TE", team: "PHI", bye: "10", isRookie: true },
+            { rank: 736, name: "Mike Gesicki", pos: "TE", team: "CIN", bye: "6", isRookie: false },
+            { rank: 737, name: "Jake Tonges", pos: "TE", team: "SF", bye: "8", isRookie: false },
+            { rank: 738, name: "Darren Waller", pos: "TE", team: "CAR", bye: "5", isRookie: false },
+            { rank: 739, name: "Darnell Washington", pos: "TE", team: "PIT", bye: "9", isRookie: false },
+            { rank: 740, name: "Michael Mayer", pos: "TE", team: "LV", bye: "13", isRookie: false },
+            { rank: 741, name: "Oscar Delp", pos: "TE", team: "NO", bye: "8", isRookie: false },
+            { rank: 742, name: "Charlie Kolar", pos: "TE", team: "LAC", bye: "7", isRookie: false },
+            { rank: 743, name: "Elijah Arroyo", pos: "TE", team: "SEA", bye: "11", isRookie: false },
+            { rank: 744, name: "Cole Kmet", pos: "TE", team: "CHI", bye: "10", isRookie: false },
+            { rank: 745, name: "Dawson Knox", pos: "TE", team: "BUF", bye: "7", isRookie: false },
+            { rank: 746, name: "Tyler Higbee", pos: "TE", team: "LAR", bye: "11", isRookie: false },
+            { rank: 747, name: "Max Klare", pos: "TE", team: "LAR", bye: "11", isRookie: false },
+            { rank: 748, name: "Eli Raridon", pos: "TE", team: "NE", bye: "11", isRookie: false },
+            { rank: 749, name: "Noah Gray", pos: "TE", team: "KC", bye: "5", isRookie: false },
+            { rank: 750, name: "Erick All Jr.", pos: "TE", team: "CIN", bye: "6", isRookie: false },
+            { rank: 751, name: "Ja'Tavion Sanders", pos: "TE", team: "CAR", bye: "5", isRookie: false },
+            { rank: 752, name: "Noah Fant", pos: "TE", team: "NO", bye: "8", isRookie: false },
+            { rank: 753, name: "Ben Sinnott", pos: "TE", team: "WAS", bye: "7", isRookie: false },
+            { rank: 754, name: "Tommy Tremble", pos: "TE", team: "CAR", bye: "5", isRookie: false },
+            { rank: 755, name: "Justin Joly", pos: "TE", team: "MIA", bye: "6", isRookie: false },
+            { rank: 756, name: "Mitchell Evans", pos: "TE", team: "CAR", bye: "5", isRookie: false },
+            { rank: 757, name: "Daniel Bellinger", pos: "TE", team: "TEN", bye: "9", isRookie: false },
+            { rank: 758, name: "Jonnu Smith", pos: "TE", team: "GB", bye: "11", isRookie: false },
+            { rank: 759, name: "Luke Musgrave", pos: "TE", team: "GB", bye: "11", isRookie: false },
+            { rank: 760, name: "Elijah Higgins", pos: "TE", team: "ARI", bye: "14", isRookie: false },
+            { rank: 761, name: "Austin Hooper", pos: "TE", team: "ATL", bye: "11", isRookie: false },
+            { rank: 762, name: "Marlin Klein", pos: "TE", team: "HOU", bye: "8", isRookie: false },
+            { rank: 763, name: "John Bates", pos: "TE", team: "WAS", bye: "7", isRookie: false },
+            { rank: 764, name: "Josh Oliver", pos: "TE", team: "MIN", bye: "6", isRookie: false },
+            { rank: 765, name: "Matt Hibner", pos: "TE", team: "BAL", bye: "13", isRookie: false },
+            { rank: 766, name: "Jackson Hawes", pos: "TE", team: "BUF", bye: "7", isRookie: false },
+            { rank: 767, name: "Nate Boerkircher", pos: "TE", team: "JAC", bye: "7", isRookie: false },
+            { rank: 768, name: "Adam Trautman", pos: "TE", team: "DEN", bye: "10", isRookie: false },
+            { rank: 769, name: "Will Kacmarek", pos: "TE", team: "MIA", bye: "6", isRookie: false },
+            { rank: 770, name: "Zach Ertz", pos: "TE", team: "FA", bye: "-", isRookie: false },
+            { rank: 771, name: "Tanner Koziol", pos: "TE", team: "JAC", bye: "7", isRookie: false },
+            { rank: 772, name: "Luke Schoonmaker", pos: "TE", team: "DAL", bye: "14", isRookie: false },
+            { rank: 773, name: "Brock Wright", pos: "TE", team: "DET", bye: "6", isRookie: false },
+            { rank: 774, name: "Durham Smythe", pos: "TE", team: "BAL", bye: "13", isRookie: false },
+            { rank: 775, name: "Foster Moreau", pos: "TE", team: "HOU", bye: "8", isRookie: false },
+            { rank: 776, name: "Mo Alie-Cox", pos: "TE", team: "IND", bye: "13", isRookie: false },
+            { rank: 777, name: "Cade Stover", pos: "TE", team: "HOU", bye: "8", isRookie: false },
+            { rank: 778, name: "Sam Roush", pos: "TE", team: "CHI", bye: "10", isRookie: false },
+            { rank: 779, name: "Drew Sample", pos: "TE", team: "CIN", bye: "6", isRookie: false },
+            { rank: 780, name: "Jeremy Ruckert", pos: "TE", team: "NYJ", bye: "13", isRookie: false },
+            { rank: 781, name: "Tyler Conklin", pos: "TE", team: "DET", bye: "6", isRookie: false },
+            { rank: 782, name: "Josh Whyle", pos: "TE", team: "GB", bye: "11", isRookie: false }
+        ];
+
+        let teams = poolersList.map((name, i) => ({
+            id: i + 1,
+            name: name,
+            budget: 200,
+            roster: [],
+            auctionPurchases: []
+        }));
+
+        let picks = [];
+        let currentOverallPick = 1;
+        let timeLeft = 120;
+        let timerInterval = null;
+        let isTimerRunning = false;
+        let selectedPlayerForDraft = null;
+
+        function initApp() {
+            loadFromLocalStorage();
+            renderBoardHeader();
+            renderBoardBody();
+            renderPlayerPool();
+            renderRosters();
+            renderAuctionTracker();
+            updateHeaderStatus();
+        }
+
+        function switchTab(tabId) {
+            ['board', 'auction', 'players', 'rosters'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabId}`).className = "px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-400 transition";
+        }
+
+        function renderBoardHeader() {
+            const headerRow = document.getElementById('board-header');
+            let html = '<th class="p-3 w-16 text-center font-bold">Rd</th>';
+            poolersList.forEach(pooler => {
+                html += `<th class="p-3 text-center font-semibold text-slate-300">${pooler}</th>`;
+            });
+            headerRow.innerHTML = html;
+        }
+
+        function renderBoardBody() {
+            const tbody = document.getElementById('board-body');
+            let html = '';
+            const numTeams = 10;
+            const totalRounds = 16;
+
+            for (let r = 1; r <= totalRounds; r++) {
+                html += `<tr class="border-b border-borderCol/40">`;
+                html += `<td class="p-3 font-mono font-bold text-center bg-slate-900/60 text-slate-400">R${r}</td>`;
+
+                for (let pos = 0; pos < numTeams; pos++) {
+                    const overall = (r - 1) * numTeams + (pos + 1);
+                    const assignedPoolerName = tradedDraftMatrix[r - 1][pos];
+                    const pickObj = picks.find(p => p.overall === overall);
+                    const isOnClock = overall === currentOverallPick;
+
+                    let cellClass = "p-2.5 text-center border-r border-borderCol/30 transition relative ";
+                    if (pickObj) {
+                        cellClass += "bg-emerald-950/20 text-emerald-300";
+                    } else if (isOnClock) {
+                        cellClass += "bg-amber-500/10 border-2 border-amber-500/50 animate-pulse";
+                    } else {
+                        cellClass += "hover:bg-slate-800/40 text-slate-400";
+                    }
+
+                    html += `<td class="${cellClass}" onclick="handleCellClick(${overall}, '${assignedPoolerName}')">`;
+                    html += `<div class="text-[10px] text-slate-500 font-mono mb-0.5">#${overall} (${assignedPoolerName})</div>`;
+                    if (pickObj) {
+                        html += `<div class="font-bold text-xs text-white truncate">${pickObj.player.name}</div>`;
+                        html += `<div class="text-[10px] text-emerald-400 font-medium">${pickObj.player.pos} - ${pickObj.player.team}</div>`;
+                    } else if (isOnClock) {
+                        html += `<div class="text-xs font-bold text-amber-400">ON THE CLOCK</div>`;
+                    } else {
+                        html += `<div class="text-xs text-slate-600 italic">Empty</div>`;
+                    }
+                    html += `</td>`;
+                }
+                html += `</tr>`;
+            }
+            tbody.innerHTML = html;
+        }
+
+        function handleCellClick(overall, poolerName) {
+            if (overall !== currentOverallPick) {
+                alert("You can only make picks in sequential order. Current pick is #" + currentOverallPick);
+                return;
+            }
+            openPlayerSelectionModal(poolerName, overall);
+        }
+
+        function openPlayerSelectionModal(poolerName, overall) {
+            selectedPlayerForDraft = { poolerName, overall };
+            document.getElementById('modal-title').innerText = `Make Pick #${overall} for ${poolerName}`;
+            
+            const available = rawPlayers.filter(p => !picks.some(pk => pk.player.rank === p.rank && pk.player.name === p.name));
+            
+            let html = `<p class="text-xs text-slate-400">Select an available player to assign to <strong class="text-white">${poolerName}</strong>:</p>`;
+            html += `<select id="modal-player-select" class="w-full px-3.5 py-2.5 bg-slate-900 border border-borderCol rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500">`;
+            available.forEach(p => {
+                html += `<option value="${p.rank}">${p.rank}. ${p.name} (${p.pos} - ${p.team})${p.isRookie ? ' [ROOKIE]' : ''}</option>`;
+            });
+            html += `</select>`;
+            
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('draft-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('draft-modal').classList.add('hidden');
+            selectedPlayerForDraft = null;
+        }
+
+        function confirmDraftPlayer() {
+            if (!selectedPlayerForDraft) return;
+            const selectEl = document.getElementById('modal-player-select');
+            if (!selectEl) return;
+            const playerRank = parseInt(selectEl.value);
+            const player = rawPlayers.find(p => p.rank === playerRank);
+
+            if (player) {
+                const { poolerName, overall } = selectedPlayerForDraft;
+                const round = Math.ceil(overall / 10);
+                
+                picks.push({ round, overall, poolerName, player });
+
+                const team = teams.find(t => t.name === poolerName);
+                if (team) {
+                    team.roster.push({ ...player, draftedOverall: overall });
+                }
+
+                currentOverallPick++;
+                saveToLocalStorage();
+                closeModal();
+                initApp();
+            }
+        }
+
+        function filterPlayers() {
+            renderPlayerPool();
+        }
+
+        function renderPlayerPool() {
+            const tbody = document.getElementById('player-pool-body');
+            const searchVal = document.getElementById('player-search').value.toLowerCase();
+            const posVal = document.getElementById('position-filter').value;
+            const statusVal = document.getElementById('status-filter').value;
+
+            const filtered = rawPlayers.filter(p => {
+                const isDrafted = picks.some(pk => pk.player.rank === p.rank && pk.player.name === p.name) ||
+                                  teams.some(t => t.auctionPurchases.some(ap => ap.player.rank === p.rank));
+                
+                if (statusVal === 'AVAILABLE' && isDrafted) return false;
+                if (statusVal === 'DRAFTED' && !isDrafted) return false;
+
+                if (posVal === 'ROOKIE' && !p.isRookie) return false;
+                if (posVal !== 'ALL' && posVal !== 'ROOKIE' && p.pos !== posVal) return false;
+
+                if (searchVal && !p.name.toLowerCase().includes(searchVal) && !p.team.toLowerCase().includes(searchVal) && !p.rank.toString().includes(searchVal)) {
+                    return false;
+                }
+                return true;
+            });
+
+            let html = '';
+            filtered.forEach(p => {
+                const draftedPick = picks.find(pk => pk.player.rank === p.rank && pk.player.name === p.name);
+                const auctionBuy = teams.find(t => t.auctionPurchases.some(ap => ap.player.rank === p.rank));
+                const isDrafted = !!draftedPick || !!auctionBuy;
+                const ownerName = draftedPick ? draftedPick.poolerName : (auctionBuy ? auctionBuy.name + " (Auction)" : null);
+
+                html += `<tr class="border-b border-borderCol/40 hover:bg-slate-800/30 transition">`;
+                html += `<td class="p-3 font-mono font-bold text-slate-400">#${p.rank}</td>`;
+                html += `<td class="p-3 font-bold text-slate-200">${p.name} ${p.isRookie ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/40">ROOKIE</span>' : ''}</td>`;
+                html += `<td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${p.pos}</span></td>`;
+                html += `<td class="p-3 text-slate-300 font-medium">${p.team}</td>`;
+                html += `<td class="p-3 text-slate-400">${p.bye}</td>`;
+                html += `<td class="p-3 text-center">`;
+                if (isDrafted) {
+                    html += `<span class="text-xs font-medium text-emerald-400 bg-emerald-950/30 px-3 py-1 rounded-lg border border-emerald-800/40">Acquired by ${ownerName}</span>`;
+                } else {
+                    html += `<button onclick="quickDraftPlayer(${p.rank})" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow transition">Draft to Current Pick (#${currentOverallPick})</button>`;
+                }
+                html += `</td>`;
+                html += `</tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function quickDraftPlayer(playerRank) {
+            if (currentOverallPick > 10 * 16) {
+                alert("Draft is already complete!");
+                return;
+            }
+            const player = rawPlayers.find(p => p.rank === playerRank);
+            const r = Math.ceil(currentOverallPick / 10);
+            const pos = (currentOverallPick - 1) % 10;
+            const poolerName = tradedDraftMatrix[r - 1][pos];
+
+            picks.push({ round: r, overall: currentOverallPick, poolerName, player });
+
+            const team = teams.find(t => t.name === poolerName);
+            if (team) {
+                team.roster.push({ ...player, draftedOverall: currentOverallPick });
+            }
+
+            currentOverallPick++;
+            saveToLocalStorage();
+            initApp();
+        }
+
+        function renderAuctionTracker() {
+            const cardsContainer = document.getElementById('auction-budget-cards');
+            let cardsHtml = '';
+            teams.forEach(t => {
+                const totalSpent = t.auctionPurchases.reduce((sum, item) => sum + item.cost, 0);
+                const remaining = t.budget - totalSpent;
+                cardsHtml += `<div class="bg-cardBg border border-borderCol rounded-2xl p-4 shadow-xl flex flex-col justify-between">`;
+                cardsHtml += `<div>`;
+                cardsHtml += `<div class="font-bold text-sm text-white mb-1">${t.name}</div>`;
+                cardsHtml += `<div class="flex justify-between text-xs text-slate-400 mb-2"><span>Remaining:</span><strong class="text-emerald-400">$${remaining}</strong></div>`;
+                cardsHtml += `<div class="w-full bg-slate-900 rounded-full h-2 mb-2 overflow-hidden border border-borderCol"><div class="bg-amber-500 h-2 rounded-full" style="width: ${(remaining / t.budget) * 100}%"></div></div>`;
+                cardsHtml += `</div>`;
+                cardsHtml += `<div class="text-[10px] text-slate-500">${t.auctionPurchases.length} Players Bought</div>`;
+                cardsHtml += `</div>`;
+            });
+            cardsContainer.innerHTML = cardsHtml;
+
+            const logBody = document.getElementById('auction-log-body');
+            let logHtml = '';
+            let allPurchases = [];
+            teams.forEach(t => {
+                t.auctionPurchases.forEach(ap => {
+                    allPurchases.push({ pooler: t.name, ...ap });
+                });
+            });
+
+            if (allPurchases.length === 0) {
+                logHtml = `<tr><td colspan="6" class="p-4 text-center text-slate-500 italic">No auction players purchased yet.</td></tr>`;
+            } else {
+                allPurchases.forEach((item) => {
+                    logHtml += `<tr class="border-b border-borderCol/40">`;
+                    logHtml += `<td class="p-3 font-bold text-slate-200">${item.player.name}</td>`;
+                    logHtml += `<td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400">${item.player.pos}</span></td>`;
+                    logHtml += `<td class="p-3 text-slate-300">${item.player.team}</td>`;
+                    logHtml += `<td class="p-3 text-slate-200 font-semibold">${item.pooler}</td>`;
+                    logHtml += `<td class="p-3 text-emerald-400 font-mono font-bold">$${item.cost}</td>`;
+                    logHtml += `<td class="p-3 text-center"><button onclick="removeAuctionPurchase('${item.pooler}', ${item.player.rank})" class="px-2.5 py-1 bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 text-xs rounded transition">Remove</button></td>`;
+                    logHtml += `</tr>`;
+                });
+            }
+            logBody.innerHTML = logHtml;
+        }
+
+        function openNominationModal() {
+            document.getElementById('auction-pos-filter').value = 'ALL';
+            populateAuctionPlayerSelect();
+
+            let poolerOpts = '';
+            teams.forEach(t => {
+                poolerOpts += `<option value="${t.name}">${t.name}</option>`;
+            });
+            document.getElementById('auction-pooler-select').innerHTML = poolerOpts;
+
+            document.getElementById('auction-modal').classList.remove('hidden');
+        }
+
+        function populateAuctionPlayerSelect() {
+            const posFilter = document.getElementById('auction-pos-filter').value;
+            const selectEl = document.getElementById('auction-player-select');
+
+            // Filter available players (not yet drafted or bought)
+            let available = rawPlayers.filter(p => !picks.some(pk => pk.player.rank === p.rank) && !teams.some(t => t.auctionPurchases.some(ap => ap.player.rank === p.rank)));
+
+            // Apply position filter if selected
+            if (posFilter !== 'ALL') {
+                available = available.filter(p => p.pos === posFilter);
+            }
+
+            // Sort by original rank order
+            available.sort((a, b) => a.rank - b.rank);
+
+            let playerOpts = '';
+            if (available.length === 0) {
+                playerOpts = `<option value="">No available players found</option>`;
+            } else {
+                available.forEach(p => {
+                    playerOpts += `<option value="${p.rank}">${p.rank}. ${p.name} (${p.pos} - ${p.team})${p.isRookie ? ' [ROOKIE]' : ''}</option>`;
+                });
+            }
+            selectEl.innerHTML = playerOpts;
+        }
+
+        function closeAuctionModal() {
+            document.getElementById('auction-modal').classList.add('hidden');
+        }
+
+        function confirmAuctionPurchase() {
+            const rankVal = document.getElementById('auction-player-select').value;
+            if (!rankVal) return;
+            const playerRank = parseInt(rankVal);
+            const poolerName = document.getElementById('auction-pooler-select').value;
+            const cost = parseInt(document.getElementById('auction-bid-amount').value) || 0;
+
+            const player = rawPlayers.find(p => p.rank === playerRank);
+            const team = teams.find(t => t.name === poolerName);
+
+            if (player && team) {
+                team.auctionPurchases.push({ player, cost });
+                team.roster.push({ ...player, draftedOverall: 'Auction' });
+                saveToLocalStorage();
+                closeAuctionModal();
+                initApp();
+            }
+        }
+
+        function removeAuctionPurchase(poolerName, playerRank) {
+            const team = teams.find(t => t.name === poolerName);
+            if (team) {
+                team.auctionPurchases = team.auctionPurchases.filter(ap => ap.player.rank !== playerRank);
+                team.roster = team.roster.filter(p => p.rank !== playerRank);
+                saveToLocalStorage();
+                initApp();
+            }
+        }
+
+        function renderRosters() {
+            const grid = document.getElementById('rosters-grid');
+            let html = '';
+
+            teams.forEach(team => {
+                const posCounts = { QB: 0, RB: 0, WR: 0, TE: 0 };
+                team.roster.forEach(p => {
+                    if (posCounts[p.pos] !== undefined) posCounts[p.pos]++;
+                });
+
+                html += `<div class="bg-cardBg border border-borderCol rounded-2xl p-4 shadow-xl flex flex-col justify-between">`;
+                html += `<div>`;
+                html += `<div class="flex items-center justify-between border-b border-borderCol pb-3 mb-3">`;
+                html += `<h3 class="font-bold text-white text-sm">${team.name}</h3>`;
+                html += `<span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-900 text-slate-300">${team.roster.length} Players</span>`;
+                html += `</div>`;
+                
+                html += `<div class="flex gap-1.5 mb-3 text-[10px] font-semibold">`;
+                html += `<span class="px-2 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-800/30">QB: ${posCounts.QB}</span>`;
+                html += `<span class="px-2 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-800/30">RB: ${posCounts.RB}</span>`;
+                html += `<span class="px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-300 border border-emerald-800/30">WR: ${posCounts.WR}</span>`;
+                html += `<span class="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800/30">TE: ${posCounts.TE}</span>`;
+                html += `</div>`;
+
+                html += `<div class="space-y-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">`;
+                if (team.roster.length === 0) {
+                    html += `<p class="text-xs text-slate-500 italic py-4 text-center">No players acquired yet</p>`;
+                } else {
+                    team.roster.forEach(p => {
+                        html += `<div class="flex items-center justify-between bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-borderCol/40 text-xs">`;
+                        html += `<div class="flex items-center gap-2">`;
+                        html += `<span class="text-[10px] font-mono text-slate-500">#${p.draftedOverall}</span>`;
+                        html += `<span class="font-bold text-slate-200">${p.name}</span>`;
+                        html += `</div>`;
+                        html += `<div class="flex items-center gap-1.5">`;
+                        html += `<span class="text-[10px] text-slate-400">${p.team}</span>`;
+                        html += `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${p.pos}</span>`;
+                        html += `</div>`;
+                        html += `</div>`;
+                    });
+                }
+                html += `</div>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            grid.innerHTML = html;
+        }
+
+        function updateHeaderStatus() {
+            if (currentOverallPick > 10 * 16) {
+                document.getElementById('on-clock-team').innerText = "DRAFT COMPLETED";
+                document.getElementById('round-pick-display').innerText = "Final";
+                return;
+            }
+            const r = Math.ceil(currentOverallPick / 10);
+            const pos = (currentOverallPick - 1) % 10;
+            const currentPooler = tradedDraftMatrix[r - 1][pos];
+
+            document.getElementById('on-clock-team').innerText = currentPooler;
+            document.getElementById('round-pick-display').innerText = `R${r} - Pick ${pos + 1} (Overall #${currentOverallPick})`;
+        }
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                document.getElementById('timer-btn').className = "p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition";
+                document.getElementById('timer-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            } else {
+                isTimerRunning = true;
+                document.getElementById('timer-btn').className = "p-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition";
+                document.getElementById('timer-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />';
+                timerInterval = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateTimerDisplay();
+                    } else {
+                        playAudioAlert();
+                        clearInterval(timerInterval);
+                        isTimerRunning = false;
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            timeLeft = 120;
+            updateTimerDisplay();
+            document.getElementById('timer-btn').className = "p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition";
+            document.getElementById('timer-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            const el = document.getElementById('timer-display');
+            el.innerText = `${mins}:${secs}`;
+            if (timeLeft <= 15) {
+                el.className = "text-sm font-mono font-bold text-rose-500 animate-pulse";
+            } else {
+                el.className = "text-sm font-mono font-bold text-emerald-400";
+            }
+        }
+
+        function playAudioAlert() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            } catch (e) {
+                console.log("Audio alert failed", e);
+            }
+        }
+
+        function undoLastPick() {
+            if (picks.length === 0) {
+                alert("No picks to undo.");
+                return;
+            }
+            const lastPick = picks.pop();
+            const team = teams.find(t => t.name === lastPick.poolerName);
+            if (team) {
+                team.roster = team.roster.filter(p => p.draftedOverall !== lastPick.overall);
+            }
+            currentOverallPick = lastPick.overall;
+            resetTimer();
+            saveToLocalStorage();
+            initApp();
+        }
+
+        function resetDraft() {
+            if (confirm("Are you sure you want to completely reset the draft? All picks and auction buys will be lost.")) {
+                picks = [];
+                currentOverallPick = 1;
+                teams.forEach(t => { t.roster = []; t.auctionPurchases = []; });
+                resetTimer();
+                localStorage.removeItem('fantasy_custom_draft_state');
+                initApp();
+            }
+        }
+
+        function saveToLocalStorage() {
+            const state = { picks, currentOverallPick, teams };
+            localStorage.setItem('fantasy_custom_draft_state', JSON.stringify(state));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('fantasy_custom_draft_state');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    picks = parsed.picks || [];
+                    currentOverallPick = parsed.currentOverallPick || 1;
+                    if (parsed.teams) {
+                        teams = parsed.teams;
+                    }
+                } catch (e) {
+                    console.error("Failed to load saved state", e);
+                }
+            }
+        }
+
+        function exportDraftData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ picks, teams }, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "custom_draft_results.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
