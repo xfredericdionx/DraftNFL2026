@@ -178,6 +178,7 @@
                         <option value="RB">RB</option>
                         <option value="WR">WR</option>
                         <option value="TE">TE</option>
+                        <option value="K">K</option>
                         <option value="ROOKIE">⭐ Rookies List Only</option>
                     </select>
                 </div>
@@ -260,6 +261,7 @@
                             <option value="RB">RB</option>
                             <option value="WR">WR</option>
                             <option value="TE">TE</option>
+                            <option value="K">K</option>
                         </select>
                     </div>
                     <div>
@@ -927,7 +929,30 @@
             { rank: 779, name: "Drew Sample", pos: "TE", team: "CIN", bye: "6", isRookie: false },
             { rank: 780, name: "Jeremy Ruckert", pos: "TE", team: "NYJ", bye: "13", isRookie: false },
             { rank: 781, name: "Tyler Conklin", pos: "TE", team: "DET", bye: "6", isRookie: false },
-            { rank: 782, name: "Josh Whyle", pos: "TE", team: "GB", bye: "11", isRookie: false }
+            { rank: 782, name: "Josh Whyle", pos: "TE", team: "GB", bye: "11", isRookie: false },
+
+            // KICKERS (801 to 821)
+            { rank: 801, name: "Brandon Aubrey", pos: "K", team: "DAL", bye: "14", isRookie: false },
+            { rank: 802, name: "Ka'imi Fairbairn", pos: "K", team: "HOU", bye: "8", isRookie: false },
+            { rank: 803, name: "Cameron Dicker", pos: "K", team: "LAC", bye: "7", isRookie: false },
+            { rank: 804, name: "Cam Little", pos: "K", team: "JAC", bye: "7", isRookie: false },
+            { rank: 805, name: "Jason Myers", pos: "K", team: "SEA", bye: "11", isRookie: false },
+            { rank: 806, name: "Eddy Pineiro", pos: "K", team: "SF", bye: "8", isRookie: false },
+            { rank: 807, name: "Tyler Loop", pos: "K", team: "BAL", bye: "13", isRookie: false },
+            { rank: 808, name: "Jake Bates", pos: "K", team: "DET", bye: "6", isRookie: false },
+            { rank: 809, name: "Evan McPherson", pos: "K", team: "CIN", bye: "6", isRookie: false },
+            { rank: 810, name: "Chase McLaughlin", pos: "K", team: "TB", bye: "10", isRookie: false },
+            { rank: 811, name: "Cairo Santos", pos: "K", team: "CHI", bye: "10", isRookie: false },
+            { rank: 812, name: "Andy Borregales", pos: "K", team: "NE", bye: "11", isRookie: false },
+            { rank: 813, name: "Harrison Mevis", pos: "K", team: "LAR", bye: "11", isRookie: false },
+            { rank: 814, name: "Chris Boswell", pos: "K", team: "PIT", bye: "9", isRookie: false },
+            { rank: 815, name: "Harrison Butker", pos: "K", team: "KC", bye: "5", isRookie: false },
+            { rank: 816, name: "Will Reichard", pos: "K", team: "MIN", bye: "6", isRookie: false },
+            { rank: 817, name: "Wil Lutz", pos: "K", team: "DEN", bye: "10", isRookie: false },
+            { rank: 818, name: "Jake Elliott", pos: "K", team: "PHI", bye: "10", isRookie: false },
+            { rank: 819, name: "Tyler Bass", pos: "K", team: "BUF", bye: "7", isRookie: false },
+            { rank: 820, name: "Joey Slye", pos: "K", team: "TEN", bye: "9", isRookie: false },
+            { rank: 821, name: "Chad Ryland", pos: "K", team: "ARI", bye: "14", isRookie: false }
         ];
 
         let teams = poolersList.map((name, i) => ({
@@ -1106,7 +1131,7 @@
                 html += `<tr class="border-b border-borderCol/40 hover:bg-slate-800/30 transition">`;
                 html += `<td class="p-3 font-mono font-bold text-slate-400">#${p.rank}</td>`;
                 html += `<td class="p-3 font-bold text-slate-200">${p.name} ${p.isRookie ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/40">ROOKIE</span>' : ''}</td>`;
-                html += `<td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${p.pos}</span></td>`;
+                html += `<td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : p.pos === 'TE' ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'}">${p.pos}</span></td>`;
                 html += `<td class="p-3 text-slate-300 font-medium">${p.team}</td>`;
                 html += `<td class="p-3 text-slate-400">${p.bye}</td>`;
                 html += `<td class="p-3 text-center">`;
@@ -1203,15 +1228,12 @@
             const posFilter = document.getElementById('auction-pos-filter').value;
             const selectEl = document.getElementById('auction-player-select');
 
-            // Filter available players (not yet drafted or bought)
             let available = rawPlayers.filter(p => !picks.some(pk => pk.player.rank === p.rank) && !teams.some(t => t.auctionPurchases.some(ap => ap.player.rank === p.rank)));
 
-            // Apply position filter if selected
             if (posFilter !== 'ALL') {
                 available = available.filter(p => p.pos === posFilter);
             }
 
-            // Sort by original rank order
             available.sort((a, b) => a.rank - b.rank);
 
             let playerOpts = '';
@@ -1263,7 +1285,7 @@
             let html = '';
 
             teams.forEach(team => {
-                const posCounts = { QB: 0, RB: 0, WR: 0, TE: 0 };
+                const posCounts = { QB: 0, RB: 0, WR: 0, TE: 0, K: 0 };
                 team.roster.forEach(p => {
                     if (posCounts[p.pos] !== undefined) posCounts[p.pos]++;
                 });
@@ -1275,11 +1297,12 @@
                 html += `<span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-900 text-slate-300">${team.roster.length} Players</span>`;
                 html += `</div>`;
                 
-                html += `<div class="flex gap-1.5 mb-3 text-[10px] font-semibold">`;
-                html += `<span class="px-2 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-800/30">QB: ${posCounts.QB}</span>`;
-                html += `<span class="px-2 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-800/30">RB: ${posCounts.RB}</span>`;
-                html += `<span class="px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-300 border border-emerald-800/30">WR: ${posCounts.WR}</span>`;
-                html += `<span class="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800/30">TE: ${posCounts.TE}</span>`;
+                html += `<div class="flex flex-wrap gap-1 mb-3 text-[10px] font-semibold">`;
+                html += `<span class="px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-800/30">QB: ${posCounts.QB}</span>`;
+                html += `<span class="px-1.5 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-800/30">RB: ${posCounts.RB}</span>`;
+                html += `<span class="px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-300 border border-emerald-800/30">WR: ${posCounts.WR}</span>`;
+                html += `<span class="px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800/30">TE: ${posCounts.TE}</span>`;
+                html += `<span class="px-1.5 py-0.5 rounded bg-rose-950/40 text-rose-300 border border-rose-800/30">K: ${posCounts.K}</span>`;
                 html += `</div>`;
 
                 html += `<div class="space-y-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">`;
@@ -1294,7 +1317,7 @@
                         html += `</div>`;
                         html += `<div class="flex items-center gap-1.5">`;
                         html += `<span class="text-[10px] text-slate-400">${p.team}</span>`;
-                        html += `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${p.pos}</span>`;
+                        html += `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${p.pos === 'QB' ? 'bg-purple-500/20 text-purple-400' : p.pos === 'RB' ? 'bg-blue-500/20 text-blue-400' : p.pos === 'WR' ? 'bg-emerald-500/20 text-emerald-400' : p.pos === 'TE' ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'}">${p.pos}</span>`;
                         html += `</div>`;
                         html += `</div>`;
                     });
